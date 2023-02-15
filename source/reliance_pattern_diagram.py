@@ -3,6 +3,9 @@ from matplotlib.patches import Ellipse
 import seaborn as sns
 import numpy as np
 
+def compute_metrics():
+  return
+
 def trust_diagram(RBOTs, RBDs, RBODs, RBTs, labels, confidence=None, filename="trust-diagram"):
   fig, axs = plt.subplots(ncols=2, sharex=False, sharey=False, figsize=(10,5))
   plt.subplots_adjust(wspace=0.05, hspace=0)
