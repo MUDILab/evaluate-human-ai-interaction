@@ -107,7 +107,7 @@ def compute_reliance(data):
     :param data: A DataFrame of cases
     :type data: DataFrame
     '''
-    colnames =  "Count (" + data["Type_AI"].unique() + ")"
+    colnames =  ["Count (" + str(v) + ")" for v in data["Type_AI"].unique()]
     patterns = None
     if ("AI" in data.columns):
         patterns = pd.DataFrame(np.zeros((8, 3 + len(colnames)), dtype=int), columns=["HD1","AI","FHD"] + list(colnames))
@@ -116,7 +116,7 @@ def compute_reliance(data):
             for j in range(3):
                 patterns.iloc[i,j] = lst[i][j]
             for v in data["Type_AI"].unique():
-                patterns.loc[i, "Count (" + v + ")"] = data[((data["HD1"] == lst[i][0]) & 
+                patterns.loc[i, "Count (" + str(v) + ")"] = data[((data["HD1"] == lst[i][0]) & 
                                                              (data["AI"] == lst[i][1])  &
                                                              (data["FHD"] == lst[i][2]) &
                                                              (data["Type_AI"] == v))].shape[0]
@@ -127,7 +127,7 @@ def compute_reliance(data):
             for j in range(2):
                 patterns.iloc[i,j] = lst[i][j]
             for v in data["Type_AI"].unique():
-                patterns.loc[i, "Count (" + v + ")"] = data[((data["HD1"] == lst[i][0]) & 
+                patterns.loc[i, "Count (" + str(v) + ")"] = data[((data["HD1"] == lst[i][0]) & 
                                                              (data["FHD"] == lst[i][1]) &
                                                              (data["Type_AI"] == v))].shape[0] 
     return patterns

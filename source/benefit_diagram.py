@@ -42,7 +42,7 @@ def compute_benefits(filename="file.csv"):
             temp = grouped[(grouped["Type_AI"] == v) & (grouped["Study"] == s)]
             baseline = temp["HD1"]
             difference = temp["FHD"] - temp["HD1"]
-            benefit_diagram(baseline, difference, temp["Type_H"], v + " (" + s + ")")
+            benefit_diagram(baseline, difference, temp["Type_H"], str(v) + " (" + str(s) + ")")
 
 #baseline is a baseline accuracy (e.g., accuracy without AI)
 #difference is the difference between two accuracies (e.g., accuracy with AI - accuracy without AI)
