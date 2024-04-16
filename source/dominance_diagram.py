@@ -81,7 +81,7 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
                          color=palette[idj],
                          ecolor='k', zorder=2*idj)
             plt.scatter(val, level,
-                         label=v,
+                         label=v + ("%.2f [%.2f,%.2f]" % (val, lower, upper)),
                          color=palette[idj],
                          edgecolors='k', zorder=2*idj+1)
 
@@ -92,14 +92,14 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
             if cut:
                 plt.xlim(0.1,10)
                 
-                if title in ["Automation Bias", "Detrimental Algorithmic Aversion"]:
+                if title in ["Automation Bias", "Conservatism Bias"]:
                     plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10], ["< 0.1", 0.2, 0.5, 1, 2, 5, "> 10"])
                 else:
                     plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10], ["< -10", -5, -2, "No impact", 2, 5, "> 10"])
             else:
                 plt.xlim(0.001,1000)
                 #[0.001,0.01,0.1, 1, 10, 100, 1000])
-                if title in ["Automation Bias", "Detrimental Algorithmic Aversion"]:
+                if title in ["Automation Bias", "Conservatism Bias"]:
                     plt.xticks([0.001, 0.01, 0.1, 1, 10, 100, 1000], ["< 0.001", 0.01, 0.1, 1, 10, 100, "> 1000"])
                 else:
                     plt.xticks([0.001,0.01,0.1, 1, 10, 100, 1000], [-1000, -100, -10, "No impact", 10, 100, 1000])
@@ -119,11 +119,14 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
     handles = []
     i = 0
     for v in logodds.columns:
-        handles.append(Line2D([0], [0], marker='o', color=palette[i], label=v,
+        val = np.exp(logodds.loc[s,v])
+        lower = np.exp(logodds.loc[s,v]) - np.exp(logodds.loc[s,v] - 1.96*np.sqrt(stds.loc[s,v]))
+        upper = np.exp(logodds.loc[s,v] + 1.96*np.sqrt(stds.loc[s,v])) - np.exp(logodds.loc[s,v])
+        handles.append(Line2D([0], [0], marker='o', color=palette[i], label=v + (" (%.2f [%.2f,%.2f])" % (val, lower, upper)),
                               markeredgecolor='k'))
         i += 1
 
-    plt.legend(handles, logodds.columns)
+    plt.legend(handles=handles)
     #plt.savefig(title + ".png", dpi=500, bbox_inches="tight")
     path =  filename + "_" + title + ".png"
     plt.savefig(path, dpi=500, bbox_inches="tight")
@@ -140,7 +143,7 @@ def compute_reliance(data):
     colnames =  ["Count (" + str(v) + ")" for v in data["Type_AI"].unique()]
     patterns = None
     if ("AI" in data.columns):
-        patterns = pd.DataFrame(np.zeros((8, 3 + len(colnames)), dtype=int), columns=["HD1","AI","FHD"] + list(colnames))
+        patterns = pd.DataFrame(np.zeros((9, 3 + len(colnames)), dtype=int), columns=["HD1","AI","FHD"] + list(colnames))
         lst = list(itertools.product([0, 1], repeat=3))
         for i in range(8):
             for j in range(3):
@@ -150,8 +153,13 @@ def compute_reliance(data):
                                                              (data["AI"] == lst[i][1])  &
                                                              (data["FHD"] == lst[i][2]) &
                                                              (data["Type_AI"] == v))].shape[0]
+
+        for v in data["Type_AI"].unique():  
+            for j in range(3):
+                patterns.iloc[8,j] = "*"      
+            patterns.loc[8, "Count (" + str(v) + ")"] = data[data["Type_AI"] == v].shape[0]
     else:
-        patterns = pd.DataFrame(np.zeros((4, 2 + len(colnames)), dtype=int), columns=["HD1", "FHD"] + list(colnames))
+        patterns = pd.DataFrame(np.zeros((5, 2 + len(colnames)), dtype=int), columns=["HD1", "FHD"] + list(colnames))
         lst = list(itertools.product([0, 1], repeat=2))
         for i in range(4):
             for j in range(2):
@@ -160,6 +168,10 @@ def compute_reliance(data):
                 patterns.loc[i, "Count (" + str(v) + ")"] = data[((data["HD1"] == lst[i][0]) &
                                                              (data["FHD"] == lst[i][1]) &
                                                              (data["Type_AI"] == v))].shape[0]
+        for v in data["Type_AI"].unique():  
+            for j in range(2):
+                patterns.iloc[4,j] = "*"      
+            patterns.loc[4, "Count (" + str(v) + ")"] = data[data["Type_AI"] == v].shape[0]
     return patterns
 
 
@@ -243,46 +255,46 @@ def compute_dominance(data, cut=False, filename=None):
                 aier.loc[s,v] = data_temp[((data_temp["HD1"] == 0) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 0)) |
                           ((data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 0)) |
                           ((data_temp["HD1"] == 1) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 0)) |
-                          ((data_temp["HD1"] == 1) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 0))].shape[0]/data_temp.shape[0]
+                          ((data_temp["HD1"] == 1) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 0))].shape[0]/data_temp.shape[0] + 0.5/data_temp.shape[0]
 
                 cer.loc[s,v]  = data_temp[((data_temp["HD1"] == 0) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 0)) |
                            ((data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 0)) |
                            ((data_temp["HD1"] == 0) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 1)) |
-                           ((data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 1))].shape[0]/data_temp.shape[0]
+                           ((data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 1))].shape[0]/data_temp.shape[0] + 0.5/data_temp.shape[0]
 
 
-            logodds_general.loc[s,v] = np.log(cer.loc[s,v]/(1-cer.loc[s,v] + 0.001)*(1-aier.loc[s,v])/(aier.loc[s,v] + 0.001))
+            logodds_general.loc[s,v] = np.log(cer.loc[s,v]/(1-cer.loc[s,v])*(1-aier.loc[s,v])/(aier.loc[s,v]))
 
-            stds_general.loc[s,v] =  1/(aier.loc[s,v]*data_temp.shape[0]+ 0.001)
-            stds_general.loc[s,v] += 1/(cer.loc[s,v]*data_temp.shape[0]+ 0.001)
-            stds_general.loc[s,v] += 1/((1 - aier.loc[s,v])*data_temp.shape[0]+ 0.001)
-            stds_general.loc[s,v] += 1/((1 - cer.loc[s,v])*data_temp.shape[0]+ 0.001)
+            stds_general.loc[s,v] =  1/(aier.loc[s,v]*data_temp.shape[0])
+            stds_general.loc[s,v] += 1/(cer.loc[s,v]*data_temp.shape[0])
+            stds_general.loc[s,v] += 1/((1 - aier.loc[s,v])*data_temp.shape[0])
+            stds_general.loc[s,v] += 1/((1 - cer.loc[s,v])*data_temp.shape[0])
 
             if ("AI" in data.columns):
-                automation_bias = data_temp[(data_temp["HD1"] == 1) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 0)].shape[0]/data_temp.shape[0]
-                algorithmic_aversion = data_temp[(data_temp["HD1"] == 1) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 1)].shape[0]/data_temp.shape[0]
-                algorithmic_appreciation = data_temp[(data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 1)].shape[0]/data_temp.shape[0]
-                conservatism_bias = data_temp[(data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 0)].shape[0]/data_temp.shape[0]
+                automation_bias = data_temp[(data_temp["HD1"] == 1) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 0)].shape[0]/data_temp.shape[0] + 0.5/data_temp.shape[0]
+                algorithmic_aversion = data_temp[(data_temp["HD1"] == 1) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 1)].shape[0]/data_temp.shape[0] + 0.5/data_temp.shape[0]
+                algorithmic_appreciation = data_temp[(data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 1)].shape[0]/data_temp.shape[0] + 0.5/data_temp.shape[0]
+                conservatism_bias = data_temp[(data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 0)].shape[0]/data_temp.shape[0] + 0.5/data_temp.shape[0]
 
                 #print("%s - %s: %.3f (automation), %.3f (aversion), %.3f (appreciation), %.3f (conservatism)" % (s, v, automation_bias, algorithmic_aversion, algorithmic_appreciation, conservatism_bias))
 
-                logodds_ab.loc[s,v] = np.log(automation_bias/(1-automation_bias+0.001)*(1-algorithmic_aversion)/(algorithmic_aversion+0.001))
-                stds_ab.loc[s,v] =  1/(automation_bias*data_temp.shape[0] + 0.0000001)
-                stds_ab.loc[s,v] += 1/(algorithmic_aversion*data_temp.shape[0]+ 0.0000001)
-                stds_ab.loc[s,v] += 1/(data_temp.shape[0] - automation_bias*data_temp.shape[0]+ 0.00000001)
-                stds_ab.loc[s,v] += 1/(data_temp.shape[0] - algorithmic_aversion*data_temp.shape[0]+ 0.0000001)
+                logodds_ab.loc[s,v] = np.log(automation_bias/(1-automation_bias)*(1-algorithmic_aversion)/(algorithmic_aversion))
+                stds_ab.loc[s,v] =  1/(automation_bias*data_temp.shape[0])
+                stds_ab.loc[s,v] += 1/(algorithmic_aversion*data_temp.shape[0])
+                stds_ab.loc[s,v] += 1/(data_temp.shape[0] - automation_bias*data_temp.shape[0])
+                stds_ab.loc[s,v] += 1/(data_temp.shape[0] - algorithmic_aversion*data_temp.shape[0])
 
-                logodds_av.loc[s,v] = np.log(conservatism_bias/(1 - conservatism_bias+0.001)*(1-algorithmic_appreciation)/(0.001+algorithmic_appreciation))
-                stds_av.loc[s,v] =  1/(conservatism_bias*data_temp.shape[0]+ 0.0000001)
-                stds_av.loc[s,v] += 1/(algorithmic_appreciation*data_temp.shape[0]+ 0.00000001)
-                stds_av.loc[s,v] += 1/(data_temp.shape[0] - conservatism_bias*data_temp.shape[0]+ 0.00000001)
-                stds_av.loc[s,v] += 1/(data_temp.shape[0] - algorithmic_appreciation*data_temp.shape[0]+ 0.00000001)
+                logodds_av.loc[s,v] = np.log(conservatism_bias/(1 - conservatism_bias)*(1-algorithmic_appreciation)/(algorithmic_appreciation))
+                stds_av.loc[s,v] =  1/(conservatism_bias*data_temp.shape[0])
+                stds_av.loc[s,v] += 1/(algorithmic_appreciation*data_temp.shape[0])
+                stds_av.loc[s,v] += 1/(data_temp.shape[0] - conservatism_bias*data_temp.shape[0])
+                stds_av.loc[s,v] += 1/(data_temp.shape[0] - algorithmic_appreciation*data_temp.shape[0])
 
     diagrams = []
     diagrams.append(dominance_diagram(logodds_general, stds_general, "Tecnology Impact", cut=cut, filename=filename))
     if ("AI" in data.columns):
         diagrams.append(dominance_diagram(logodds_ab, stds_ab, "Automation Bias", inverted=True, cut=cut, filename=filename))
-        diagrams.append(dominance_diagram(logodds_av, stds_av, "Detrimental Algorithmic Aversion", inverted=True, cut=cut, filename=filename))
+        diagrams.append(dominance_diagram(logodds_av, stds_av, "Conservatism Bias", inverted=True, cut=cut, filename=filename))
     return reliance, cer, aier, logodds_general, logodds_ab, logodds_av, stds_general, stds_ab, stds_av
 
 
@@ -383,25 +395,25 @@ def compute_causal_dominance(data, cut=False, filename=None):
                 counts_av[2] += num
                 counts_av[3] += denom
 
-            logodds_ab.loc[s,v] = np.log(res_ab[0]/(1-res_ab[0])*(1-res_ab[1])/res_ab[1])
+            logodds_ab.loc[s,v] = np.log(0.001 + res_ab[0]/(1-res_ab[0])*(1-res_ab[1])/res_ab[1])
             stds_ab.loc[s,v] = (np.sum(1/counts_ab))
             if stds_ab.loc[s,v] == np.inf:
                 stds_ab.loc[s,v] = 0
 
-            logodds_av.loc[s,v] = np.log(res_av[0]/(1- res_av[0])*(1-res_av[1])/res_av[1])
+            logodds_av.loc[s,v] = np.log(0.001 + res_av[0]/(1- res_av[0])*(1-res_av[1])/res_av[1])
             stds_av.loc[s,v] = (np.sum(1/counts_av))
             if stds_av.loc[s,v] == np.inf:
                 stds_av.loc[s,v] = 0
 
     diagrams = []
     diagrams.append(dominance_diagram(logodds_ab, stds_ab, "Automation Bias (Causal)", inverted=True, cut=cut, filename=filename))
-    diagrams.append(dominance_diagram(logodds_av, stds_av, "Detrimental Algorithmic Aversion (Causal)", inverted=True, cut=cut, filename=filename))
+    diagrams.append(dominance_diagram(logodds_av, stds_av, "Conservatism Bias (Causal)", inverted=True, cut=cut, filename=filename))
 
     return logodds_ab, logodds_av, stds_ab, stds_av
 
 
 
-def compute_chi_diagrams(data, cut=False, causal=True, filename=""):
+def compute_chi_diagrams(file, cut=False, causal=True, filename=""):
     '''
     Compute the values of dominance metrics and then plots them.
     Parameters
@@ -411,7 +423,7 @@ def compute_chi_diagrams(data, cut=False, causal=True, filename=""):
     Check if graph is bounded between 0.1 and 10 (True) or not (False)
     :type cut: bool
     '''
-    #data = pd.read_csv(filename)
+    data = pd.read_csv(file)
 
     if ("HD1" not in data.columns):
         return "Mandatory field HD1 is missing!"
