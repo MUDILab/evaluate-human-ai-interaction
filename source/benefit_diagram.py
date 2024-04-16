@@ -31,28 +31,27 @@ def compute_benefits(filename="file.csv", type_ai=None, group_var=None, group_va
     
         
     if ("id" not in data.columns):
-        data["id"] = ""
+        data["id"] = data.index
 
     data = data.loc[:, ["id","HD1", "FHD", "Type_AI", "Type_H", "Study"]] if "Type_H" in data.columns else data.loc[:, ["id","HD1", "FHD", "Type_AI", "Study"]]
     grouped = data.groupby(["id","Type_AI", "Type_H", "Study"]).mean().reset_index() if "Type_H" in data.columns else data.groupby(["id","Type_AI", "Study"]).mean().reset_index()
     
     for v in grouped["Type_AI"].unique():
         for s in grouped["Study"].unique():
-            temp = grouped[(grouped["Type_AI"] == v) & (grouped["Study"] == s)]   
-            data_temp = data[(data["Type_AI"] == v) & (data["Study"] == s)]   
+            temp = grouped[(grouped["Type_AI"] == v) & (grouped["Study"] == s)].copy()   
             baseline = temp["HD1"]
             difference = temp["FHD"] - temp["HD1"]
             q25 = np.quantile(baseline, 0.25)
             q75 = np.quantile(baseline, 0.75)
             
             if "Type_H" not in temp.columns:
-                temp["Type_H"] = "Others"
-                temp.loc[temp["id"].isin(baseline[baseline <= q25].index), "Type_H"] = "Low performer"
-                temp.loc[temp["id"].isin(baseline[baseline >= q75].index), "Type_H"] = "High performer"
+                temp.loc[:,"Type_H"] = "Others"
+                temp.loc[temp["id"].isin(temp.loc[temp["HD1"] <= q25, "id"]), "Type_H"] = "Low performer"
+                temp.loc[temp["id"].isin(temp.loc[temp["HD1"] >= q75, "id"]), "Type_H"] = "High performer"
             else:
-                temp["Type_H2"] = "Others"
-                temp.loc[temp["id"].isin(baseline[baseline <= q25].index), "Type_H2"] = "Low performer"
-                temp.loc[temp["id"].isin(baseline[baseline >= q75].index), "Type_H2"] = "High performer"
+                temp.loc[:,"Type_H2"] = "Others"
+                temp.loc[temp["id"].isin(temp.loc[temp["HD1"] <= q25, "id"]), "Type_H2"] = "Low performer"
+                temp.loc[temp["id"].isin(temp.loc[temp["HD1"] >= q75, "id"]), "Type_H2"] = "High performer"
                 
             name = savename + str(v) + " (" + str(s) + ")"
             benefit_diagram(baseline, difference, temp["Type_H"] if "Type_H" in temp.columns else temp["Type_H2"], name, palette, measure)
@@ -62,11 +61,13 @@ def compute_benefits(filename="file.csv", type_ai=None, group_var=None, group_va
 def benefit_diagram(baseline, difference, groups, ai_group="", palette=None, measure="Accuracy"):
 
     if palette is None:
-        palette = "colorblind"
-        
+        palette = dict(zip([v for i, v in enumerate(np.unique(groups))],
+                            sns.color_palette('colorblind', len(np.unique(groups)))))
+    
     plt.figure(figsize=(10,10))
-    sns.scatterplot(x=baseline,
-                    y=difference, hue=groups, palette=palette)
+    for i, v in enumerate(np.unique(groups)):
+        group_size = groups[groups == v].shape[0]
+        plt.scatter(baseline[groups == v], difference[groups == v], color=palette[v], label=v + " (n=" + str(group_size) + ")")
 
     #sns.scatterplot(x=baseline, y=difference, hue=groups, palette="muted")
     
@@ -79,7 +80,7 @@ def benefit_diagram(baseline, difference, groups, ai_group="", palette=None, mea
     max = np.max(difference)
     min = np.min(difference)
     ax_lim = np.max([max, np.abs(min)])
-
+    
     plt.axhline(np.mean(difference), color="black")
     reg = LinearRegression()
     reg.fit(baseline.values.reshape(-1, 1),difference)
@@ -99,8 +100,11 @@ def benefit_diagram(baseline, difference, groups, ai_group="", palette=None, mea
         pval_e = stats.pearsonr(baseline[groups != "Others"], difference[groups != "Others"]).pvalue
 
     
-    annot = f'Avg. {measure:s} Diff.: {np.mean(difference):.2f} ({low: .2f}, {upp: .2f})\n\n r: {stat:.2f} (p: {pval:.3f}),   tan(α): {reg.coef_[0]:.2f},   α: {(180 - np.abs(np.rad2deg(np.arctan(reg.coef_[0])))):.2f}\n\n r (Low & High Perf.): {stat_e:.2f} (p: {pval_e:.3f}),   tan(α) (Low & High Perf.): {reg_e.coef_[0]:.2f},   α (Low & High Perf.): {(180 - np.abs(np.rad2deg(np.arctan(reg_e.coef_[0])))):.2f}'
-    
+        annot = f'Avg. {measure:s} Diff.: {np.mean(difference):.2f} ({low: .2f}, {upp: .2f})\n\n r: {stat:.2f} (p: {pval:.3f}),   tan(α): {reg.coef_[0]:.2f},   α: {(180 - np.abs(np.rad2deg(np.arctan(reg.coef_[0])))):.2f}\n\n r (Low & High Perf.): {stat_e:.2f} (p: {pval_e:.3f}),   tan(α) (Low & High Perf.): {reg_e.coef_[0]:.2f},   α (Low & High Perf.): {(180 - np.abs(np.rad2deg(np.arctan(reg_e.coef_[0])))):.2f}'
+    else:
+        annot = f'Avg. {measure:s} Diff.: {np.mean(difference):.2f} ({low: .2f}, {upp: .2f})\n\n r: {stat:.2f} (p: {pval:.3f}),   tan(α): {reg.coef_[0]:.2f},   α: {(180 - np.abs(np.rad2deg(np.arctan(reg.coef_[0])))):.2f}\n\n'
+
+        
     plt.annotate(annot,
                  xy=(0.5, -0.125), ha='center', va='center', xycoords='axes fraction',
                  bbox=dict(facecolor='none', edgecolor='black',boxstyle='round', alpha=0.2))
