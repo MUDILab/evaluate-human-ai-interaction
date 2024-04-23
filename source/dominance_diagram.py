@@ -80,8 +80,9 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
                          fmt="o",
                          color=palette[idj],
                          ecolor='k', zorder=2*idj)
+            st = (" (%s)" % s) if s != "" else ""
             plt.scatter(val, level,
-                         label=v + ("%.2f [%.2f,%.2f]" % (val, lower, upper)),
+                         label=v + st + (" %.2f [%.2f,%.2f]" % (val, val-lower, val+upper)),
                          color=palette[idj],
                          edgecolors='k', zorder=2*idj+1)
 
@@ -91,18 +92,10 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
 
             if cut:
                 plt.xlim(0.1,10)
-                
-                if title in ["Automation Bias", "Conservatism Bias"]:
-                    plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10], ["< 0.1", 0.2, 0.5, 1, 2, 5, "> 10"])
-                else:
-                    plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10], ["< -10", -5, -2, "No impact", 2, 5, "> 10"])
+                plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10], ["< -10", -5, -2, "No impact", 2, 5, "> 10"])
             else:
                 plt.xlim(0.001,1000)
-                #[0.001,0.01,0.1, 1, 10, 100, 1000])
-                if title in ["Automation Bias", "Conservatism Bias"]:
-                    plt.xticks([0.001, 0.01, 0.1, 1, 10, 100, 1000], ["< 0.001", 0.01, 0.1, 1, 10, 100, "> 1000"])
-                else:
-                    plt.xticks([0.001,0.01,0.1, 1, 10, 100, 1000], [-1000, -100, -10, "No impact", 10, 100, 1000])
+                plt.xticks([0.001,0.01,0.1, 1, 10, 100, 1000], [-1000, -100, -10, "No impact", 10, 100, 1000])
 
             level += step
             if level == 1.0 and len(logodds.columns)%2 == 0:
@@ -117,14 +110,17 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
     plt.xlabel(title)
 
     handles = []
-    i = 0
-    for v in logodds.columns:
-        val = np.exp(logodds.loc[s,v])
-        lower = np.exp(logodds.loc[s,v]) - np.exp(logodds.loc[s,v] - 1.96*np.sqrt(stds.loc[s,v]))
-        upper = np.exp(logodds.loc[s,v] + 1.96*np.sqrt(stds.loc[s,v])) - np.exp(logodds.loc[s,v])
-        handles.append(Line2D([0], [0], marker='o', color=palette[i], label=v + (" (%.2f [%.2f,%.2f])" % (val, lower, upper)),
-                              markeredgecolor='k'))
-        i += 1
+    
+    for s in logodds.index:
+        i = 0
+        for v in logodds.columns:
+            val = np.exp(logodds.loc[s,v])
+            lower = np.exp(logodds.loc[s,v]) - np.exp(logodds.loc[s,v] - 1.96*np.sqrt(stds.loc[s,v]))
+            upper = np.exp(logodds.loc[s,v] + 1.96*np.sqrt(stds.loc[s,v])) - np.exp(logodds.loc[s,v])
+            st = (" (%s)" % s) if s != "" else ""
+            handles.append(Line2D([0], [0], marker='o', color=palette[i], label=v + st + (" %.2f [%.2f,%.2f]" % (val, val-lower, val+upper)),
+                                  markeredgecolor='k'))
+            i += 1
 
     plt.legend(handles=handles)
     #plt.savefig(title + ".png", dpi=500, bbox_inches="tight")
@@ -293,8 +289,12 @@ def compute_dominance(data, cut=False, filename=None):
     diagrams = []
     diagrams.append(dominance_diagram(logodds_general, stds_general, "Tecnology Impact", cut=cut, filename=filename))
     if ("AI" in data.columns):
-        diagrams.append(dominance_diagram(logodds_ab, stds_ab, "Automation Bias", inverted=True, cut=cut, filename=filename))
-        diagrams.append(dominance_diagram(logodds_av, stds_av, "Conservatism Bias", inverted=True, cut=cut, filename=filename))
+        av = data_temp[(data_temp["HD1"] == 1) & (data_temp["AI"] == 0) & (data_temp["FHD"] == 1)].shape[0]
+        if av != 0:
+            diagrams.append(dominance_diagram(logodds_ab, stds_ab, "Automation Bias", inverted=True, cut=cut, filename=filename))
+        aa = data_temp[(data_temp["HD1"] == 0) & (data_temp["AI"] == 1) & (data_temp["FHD"] == 1)].shape[0]
+        if aa != 0:
+            diagrams.append(dominance_diagram(logodds_av, stds_av, "Conservatism Bias", inverted=True, cut=cut, filename=filename))
     return reliance, cer, aier, logodds_general, logodds_ab, logodds_av, stds_general, stds_ab, stds_av
 
 

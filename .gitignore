@@ -2,3 +2,8 @@ data/*.xlsx
 examples/*.png
 examples/*.html
 data/*.csv
+*/*.pyc
+.ipynb_checkpoints/*
+examples/.ipynb_checkpoints/*
+source/.ipynb_checkpoints/*
+source/__pycache__/*
