@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.lines import Line2D
 import uuid
+import matplotlib
 
 
 def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=None):
@@ -80,9 +81,9 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
                          fmt="o",
                          color=palette[idj],
                          ecolor='k', zorder=2*idj)
-            st = (" (%s)" % s) if s != "" else ""
+            st = (" (%s)" % str(s)) if str(s) != "" else ""
             plt.scatter(val, level,
-                         label=v + st + (" %.2f [%.2f,%.2f]" % (val, val-lower, val+upper)),
+                         label= str(v) + st + (" %.2f [%.2f,%.2f]" % (val, val-lower, val+upper)),
                          color=palette[idj],
                          edgecolors='k', zorder=2*idj+1)
 
@@ -117,8 +118,8 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
             val = np.exp(logodds.loc[s,v])
             lower = np.exp(logodds.loc[s,v]) - np.exp(logodds.loc[s,v] - 1.96*np.sqrt(stds.loc[s,v]))
             upper = np.exp(logodds.loc[s,v] + 1.96*np.sqrt(stds.loc[s,v])) - np.exp(logodds.loc[s,v])
-            st = (" (%s)" % s) if s != "" else ""
-            handles.append(Line2D([0], [0], marker='o', color=palette[i], label=v + st + (" %.2f [%.2f,%.2f]" % (val, val-lower, val+upper)),
+            st = (" (%s)" % str(s)) if str(s) != "" else ""
+            handles.append(Line2D([0], [0], marker='o', color=palette[i], label=str(v) + st + (" %.2f [%.2f,%.2f]" % (val, val-lower, val+upper)),
                                   markeredgecolor='k'))
             i += 1
 
@@ -439,6 +440,8 @@ def compute_chi_diagrams(file, cut=False, causal=True, filename=""):
 
     if "Complexity" not in data.columns:
         data["Complexity"] = ""
+
+    matplotlib.rcParams.update({'font.size': 15})
 
     reliance, cer, aier, logodds_general, logodds_ab, logodds_av, stds_general, stds_ab, stds_av = compute_dominance(data, cut=cut, filename=filename)
 

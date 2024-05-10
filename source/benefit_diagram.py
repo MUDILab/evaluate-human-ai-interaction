@@ -4,6 +4,7 @@ import seaborn as sns
 import pandas as pd
 import scipy.stats as stats
 from sklearn.linear_model import LinearRegression
+import matplotlib
 
 def compute_benefits(filename="file.csv", type_ai=None, group_var=None, group_vals=[], savename="plot", palette=None, measure="Accuracy"):
     data = pd.read_csv(filename)
@@ -53,16 +54,16 @@ def compute_benefits(filename="file.csv", type_ai=None, group_var=None, group_va
                 temp.loc[temp["id"].isin(temp.loc[temp["HD1"] <= q25, "id"]), "Type_H2"] = "Low performer"
                 temp.loc[temp["id"].isin(temp.loc[temp["HD1"] >= q75, "id"]), "Type_H2"] = "High performer"
                 
-            name = savename + str(v) + " (" + str(s) + ")"
-            benefit_diagram(baseline, difference, temp["Type_H"] if "Type_H" in temp.columns else temp["Type_H2"], name, palette, measure)
+            name = savename + str(s) + " (" + str(v) + ")"
+            benefit_diagram(baseline, difference, temp["Type_H"] if "Type_H" in temp.columns else temp["Type_H2"], name, palette, measure, str(s) + " (" + str(v) + ")")
 
 #baseline is a baseline accuracy (e.g., accuracy without AI)
 #difference is the difference between two accuracies (e.g., accuracy with AI - accuracy without AI)
-def benefit_diagram(baseline, difference, groups, ai_group="", palette=None, measure="Accuracy"):
-
+def benefit_diagram(baseline, difference, groups, ai_group="", palette=None, measure="Accuracy", name=""):
+    matplotlib.rcParams.update({'font.size': 15})
     if palette is None:
         palette = dict(zip([v for i, v in enumerate(np.unique(groups))],
-                            sns.color_palette('colorblind', len(np.unique(groups)))))
+                            sns.color_palette('bright', len(np.unique(groups)))))
     
     plt.figure(figsize=(10,10))
     for i, v in enumerate(np.unique(groups)):
@@ -106,11 +107,12 @@ def benefit_diagram(baseline, difference, groups, ai_group="", palette=None, mea
 
         
     plt.annotate(annot,
-                 xy=(0.5, -0.125), ha='center', va='center', xycoords='axes fraction',
+                 xy=(0.5, -0.15), ha='center', va='center', xycoords='axes fraction',
                  bbox=dict(facecolor='none', edgecolor='black',boxstyle='round', alpha=0.2))
     plt.xlabel("HD1")
     plt.ylabel("FHD - HD1")
     plt.xlim(0,1)
     plt.ylim(-1.1*ax_lim, 1.1*ax_lim)
     plt.legend(title="User Group")
+    plt.title(name)
     plt.savefig("benefit_" + ai_group + ".png", dpi=300, bbox_inches="tight")

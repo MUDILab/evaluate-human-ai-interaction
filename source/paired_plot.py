@@ -3,9 +3,13 @@ from matplotlib.patches import Ellipse
 import seaborn as sns
 import numpy as np
 import pandas as pd
+import matplotlib
 
 def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], ai_level=None, savename="plot", palette=None, measure="Accuracy"):
+    
     all_data = pd.read_csv(filename)
+    matplotlib.rcParams.update({'font.size': 11})
+
 
     if "Type_AI" not in all_data.columns:
         all_data["Type_AI"] = ""
@@ -22,6 +26,8 @@ def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], 
     for t in all_data["Type_AI"].unique():
         for s in all_data["Study"].unique():
             data = all_data[(all_data["Type_AI"] == t) & (all_data["Study"] == s)].copy()
+            if ai_level is None and "AI" in data.columns:
+                ai_level = data["AI"].mean()
             if group_user is None:
                 accs = data.groupby("id")["HD1"].mean()
                 q25 = np.quantile(accs, 0.25)
@@ -59,8 +65,10 @@ def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], 
                 ballast = diff[(diff < 0) & (acc_pre >= ai_level)].shape[0]/diff.shape[0]
                 spur = diff[(diff > 0) & (acc_pre >= ai_level)].shape[0]/diff.shape[0]
                 unchanged = diff[(diff == 0)].shape[0]/diff.shape[0]
-            
-                annot = f'Lifted: {staircase:.2f},   Repulsed: {repulsion:.2f}, Unaffected: {unchanged:.2f},\nOutperformers: {outperformance:.2f}, Ballasted: {ballast:.2f}, Spurred: {spur:.2f}'
+                empowered = diff[(diff > 0)].shape[0]/diff.shape[0]
+                undermined = diff[(diff < 0)].shape[0]/diff.shape[0]
+                unaffected = diff[(diff == 0)].shape[0]/diff.shape[0]            
+                annot = f'Lifted: {staircase:.2f},   Repulsed: {repulsion:.2f}, Unaffected: {unchanged:.2f},\nOutperformers: {outperformance:.2f}, Ballasted: {ballast:.2f}, Spurred: {spur:.2f}\nEmpowered: {empowered:.2f}, Unaffected: {unaffected:.2f}, Undermined: {undermined:.2f}'
             else:
                 empowered = diff[(diff > 0)].shape[0]/diff.shape[0]
                 undermined = diff[(diff < 0)].shape[0]/diff.shape[0]
@@ -71,7 +79,7 @@ def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], 
             if loc_group_user is not None:
                 if palette is None:
                     palette = dict(zip([v for _, v in enumerate(np.unique(data[loc_group_user]))],
-                                    sns.color_palette('colorblind', len(np.unique(data[loc_group_user])))))
+                                    sns.color_palette('bright', len(np.unique(data[loc_group_user])))))
                 for i, v in enumerate(np.unique(data[loc_group_user])):
                     acc_pre_v = data[data[loc_group_user] == v].groupby("id")["HD1"].mean().values
                     acc_post_v = data[data[loc_group_user] == v].groupby("id")["FHD"].mean().values
@@ -128,6 +136,8 @@ def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], 
             ax1.annotate(annot,
                         xy=(0.5, -0.125), ha='center', va='center', xycoords='axes fraction',
                         bbox=dict(facecolor='none', edgecolor='black',boxstyle='round', alpha=0.2))
+            
+            plt.title(str(s) + " (" + str(t) + ")")
 
             plt.tight_layout()
-            plt.savefig(savename + (sub_vals[0] if sub is not None else "") + " " + t + " " + s +"_paired.png", dpi=300)
+            plt.savefig(savename + (sub_vals[0] if sub is not None else "") + " " + str(s) + " " + str(t) +"_paired.png", dpi=300)

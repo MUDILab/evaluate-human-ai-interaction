@@ -89,4 +89,12 @@ def compute_effects(data_in):
     escalator = (1/(1/(2*var_eq) + 1/(2*acc_all)))
     slingshot = (1/(1/(2*var_inc) + 1/(2*acc_high)))
     tarpit = mannwhitneyu(acc_pre, acc_post, alternative="less").pvalue
-    return appropriate_reliance, ai_effect_on_decision, nnd, leveler, escalator, slingshot, tarpit, dominance_strength, dominance_direction
+    return {"appropriate reliance": appropriate_reliance,
+            "ai effect on decision": ai_effect_on_decision,
+            "nnd": nnd,
+            "leveler": leveler,
+            "escalator": escalator,
+            "slingshot": slingshot,
+            "tarpit": tarpit,
+            "dominance strength": dominance_strength,
+            "dominance direction": dominance_direction}
