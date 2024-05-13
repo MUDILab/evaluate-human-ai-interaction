@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from scipy.stats import levene, mannwhitneyu, ttest_ind, ansari, iqr, norm
+from sklearn.metrics import cohen_kappa_score
+
 
 def compute_effects_conf(data_in):
 
@@ -79,6 +81,31 @@ def compute_effects(data_in):
     else:
         num += data[(data["HD1"] == 0) & (data["AI"] == 0) & (data["FHD"] == 0)].shape[0]*0.5
         num += data[(data["HD1"] == 1) & (data["AI"] == 1) & (data["FHD"] == 1)].shape[0]*0.5
+
+
+    unique_ids = data['id'].unique()
+    persuasion_values = np.zeros(len(unique_ids))
+
+    # Calculate the metrics for each id
+    for idx, unique_id in enumerate(unique_ids):
+        subset = data[data['id'] == unique_id]
+        
+        # Step 2: Compute Krippendorff's alpha between HD1 and AI
+        hd1_ai_alpha = cohen_kappa_score(subset['HD1'], subset['AI'])
+        
+        # Step 3: Compute Krippendorff's alpha between FHD and AI
+        fhd_ai_alpha = cohen_kappa_score(subset['FHD'], subset['AI'])
+        
+        # Step 4: Compute the delta
+        delta = fhd_ai_alpha - hd1_ai_alpha
+        
+        # Step 5: Compute the persuasion value
+        persuasion_values[idx] = delta
+
+    # Round results to three decimal places
+    persuasion_values = persuasion_values
+    average_persuasion_value = np.nanmean(persuasion_values)
+    std_dev_persuasion_values = np.nanstd(persuasion_values)
     
     appropriate_reliance = num/data.shape[0]
     dominance_strength = (data[data["FHD"] != data["HD1"]].shape[0]/data.shape[0])
@@ -97,4 +124,7 @@ def compute_effects(data_in):
             "slingshot": slingshot,
             "tarpit": tarpit,
             "dominance strength": dominance_strength,
-            "dominance direction": dominance_direction}
+            "dominance direction": dominance_direction,
+            "persuasion_index": average_persuasion_value,
+            "persuasion values": persuasion_values,
+            "persuasion_std": std_dev_persuasion_values}
