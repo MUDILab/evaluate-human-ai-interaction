@@ -8,6 +8,7 @@ import matplotlib
 def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], ai_level=None, savename="plot", palette=None, measure="Accuracy"):
     
     all_data = pd.read_csv(filename)
+    all_data = all_data.dropna()
     matplotlib.rcParams.update({'font.size': 11})
 
 
@@ -23,8 +24,8 @@ def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], 
     if sub is not None:
         all_data = all_data[all_data[sub].isin(sub_vals)]
 
-    for t in all_data["Type_AI"].unique():
-        for s in all_data["Study"].unique():
+    for s in all_data["Study"].unique():
+        for t in all_data[all_data["Study"] == s]["Type_AI"].unique():
             data = all_data[(all_data["Type_AI"] == t) & (all_data["Study"] == s)].copy()
             if ai_level is None and "AI" in data.columns:
                 ai_level = data["AI"].mean()

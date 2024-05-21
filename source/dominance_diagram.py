@@ -47,30 +47,32 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
             val = np.exp(logodds.loc[s,v])
             lower = np.exp(logodds.loc[s,v]) - np.exp(logodds.loc[s,v] - 1.96*np.sqrt(stds.loc[s,v]))
             upper = np.exp(logodds.loc[s,v] + 1.96*np.sqrt(stds.loc[s,v])) - np.exp(logodds.loc[s,v])
+            #print(lower)
+            #print(upper)
             
 
-            if cut:
-                if val > 10:
-                    val = 10
-                    upper = 10
-                elif val < 0.1:
-                    val = 0.1
-                    lower = 0.1
-                if upper > 10:
-                    upper = 10
-                if lower < 0.1:
-                    lower = 0.1
-            else:
-                if val > 1000:
-                    val = 1000
-                    upper = 1000
-                elif val < 0.001:
-                    val = 0.001
-                    lower = 0.001
-                if upper > 1000:
-                    upper = 1000
-                if lower < 0.001:
-                    lower = 0.001
+            #if cut:
+            #    if val > 10:
+            #        val = 10
+            #        upper = 10
+            #    elif val < 0.1:
+            #        val = 0.1
+            #        lower = 0.1
+            #    if upper > 10:
+            #        upper = 10
+            #    if lower < 0.1:
+            #        lower = 0.1
+            #else:
+            #    if val > 1000:
+            #        val = 1000
+            #        upper = 1000
+            #    elif val < 0.001:
+            #        val = 0.001
+            #        lower = 0.001
+            #    if upper > 1000:
+            #        upper = 1000
+            #    if lower < 0.001:
+            #        lower = 0.001
 
             #print("%s - %s: %.2f [%.2f, %.2f] (logodds: %.2f, std: %.2f)" % (s, v, val, val-lower, val+upper, logodds.loc[s,v], stds.loc[s,v]))
             #print()
@@ -93,7 +95,7 @@ def dominance_diagram(logodds, stds, title, inverted=False, cut=False, filename=
 
             if cut:
                 plt.xlim(0.1,10)
-                plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10], ["< -10", -5, -2, "No impact", 2, 5, "> 10"])
+                plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10], [-10, -5, -2, "No impact", 2, 5, 10])
             else:
                 plt.xlim(0.001,1000)
                 plt.xticks([0.001,0.01,0.1, 1, 10, 100, 1000], [-1000, -100, -10, "No impact", 10, 100, 1000])
@@ -433,19 +435,17 @@ def compute_chi_diagrams(file, cut=False, causal=True, filename=""):
         return "Mandatory field FHD is missing!"
 
     if "Type_AI" not in data.columns:
-        data["Type_AI"] = "Support"
+        data["Type_AI"] = ""
 
     if "Study" not in data.columns:
         data["Study"] = ""
 
-    if "Complexity" not in data.columns:
-        data["Complexity"] = ""
 
     matplotlib.rcParams.update({'font.size': 15})
 
     reliance, cer, aier, logodds_general, logodds_ab, logodds_av, stds_general, stds_ab, stds_av = compute_dominance(data, cut=cut, filename=filename)
 
-    if causal:
+    if "Complexity" in data.columns:
         logodds_ab_causal, logodds_av_causal, stds_ab_causal, stds_av_causal = 0, 0, 0, 0
         if ("AI" in data.columns):
             logodds_ab_causal, logodds_av_causal, stds_ab_causal, stds_av_causal = compute_causal_dominance(data, cut=cut, filename=filename)
@@ -457,7 +457,7 @@ def compute_chi_diagrams(file, cut=False, causal=True, filename=""):
     lower_av = np.exp(logodds_av - 1.96*stds_av)
     upper_av = np.exp(logodds_av + 1.96*stds_av)
 
-    if causal:
+    if "Complexity" in data.columns:
         lower_ab_caus, upper_ab_caus, lower_av_caus, upper_av_caus = 0, 0, 0, 0
         if ("AI" in data.columns):
             lower_ab_caus = np.exp(logodds_ab_causal - 1.96*stds_ab_causal)

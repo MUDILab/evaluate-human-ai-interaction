@@ -8,6 +8,7 @@ import matplotlib
 
 def compute_benefits(filename="file.csv", type_ai=None, group_var=None, group_vals=[], savename="plot", palette=None, measure="Accuracy"):
     data = pd.read_csv(filename)
+    data = data.dropna()
     
     if ("HD1" not in data.columns):
         return "Mandatory field HD1 is missing!"
@@ -37,8 +38,8 @@ def compute_benefits(filename="file.csv", type_ai=None, group_var=None, group_va
     data = data.loc[:, ["id","HD1", "FHD", "Type_AI", "Type_H", "Study"]] if "Type_H" in data.columns else data.loc[:, ["id","HD1", "FHD", "Type_AI", "Study"]]
     grouped = data.groupby(["id","Type_AI", "Type_H", "Study"]).mean().reset_index() if "Type_H" in data.columns else data.groupby(["id","Type_AI", "Study"]).mean().reset_index()
     
-    for v in grouped["Type_AI"].unique():
-        for s in grouped["Study"].unique():
+    for s in grouped["Study"].unique():
+        for v in grouped[grouped["Study"] == s]["Type_AI"].unique():
             temp = grouped[(grouped["Type_AI"] == v) & (grouped["Study"] == s)].copy()   
             baseline = temp["HD1"]
             difference = temp["FHD"] - temp["HD1"]

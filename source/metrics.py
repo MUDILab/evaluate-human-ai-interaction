@@ -103,7 +103,6 @@ def compute_effects(data_in):
         persuasion_values[idx] = delta
 
     # Round results to three decimal places
-    persuasion_values = persuasion_values
     average_persuasion_value = np.nanmean(persuasion_values)
     std_dev_persuasion_values = np.nanstd(persuasion_values)
     
@@ -111,7 +110,9 @@ def compute_effects(data_in):
     dominance_strength = (data[data["FHD"] != data["HD1"]].shape[0]/data.shape[0])
     dominance_direction = (data[(data["FHD"] == 1) & (data["HD1"] == 0)].shape[0] - data[(data["FHD"] == 0) & (data["HD1"] == 1)].shape[0])/data[data["FHD"] != data["HD1"]].shape[0]
     ai_effect_on_decision = (acc_post.mean() - acc_pre.mean())/ acc_pre.std()
-    nnd = 1/(2*stats.norm.cdf(ai_effect_on_decision/np.sqrt(2), loc=0, scale=1)-1)
+    nnd = 1/(stats.norm.cdf(ai_effect_on_decision - norm.ppf(1 - acc_pre.mean())) - acc_pre.mean())
+    #nnd = 1/(2*stats.norm.cdf(ai_effect_on_decision/np.sqrt(2), loc=0, scale=1)-1)
+    #nnd = 1/(acc_post.mean() - acc_pre.mean())
     leveler = (1/(1/(2*var_dec) + 1/(2*acc_low)))
     escalator = (1/(1/(2*var_eq) + 1/(2*acc_all)))
     slingshot = (1/(1/(2*var_inc) + 1/(2*acc_high)))
