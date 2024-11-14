@@ -86,6 +86,8 @@ def compute_effects(data_in):
     unique_ids = data['id'].unique()
     persuasion_values = np.zeros(len(unique_ids))
 
+    
+
     # Calculate the metrics for each id
     for idx, unique_id in enumerate(unique_ids):
         subset = data[data['id'] == unique_id]
@@ -105,6 +107,16 @@ def compute_effects(data_in):
     # Round results to three decimal places
     average_persuasion_value = np.nanmean(persuasion_values)
     std_dev_persuasion_values = np.nanstd(persuasion_values)
+
+    rair = data[(data["FHD"] == 1) & (data["HD1"] == 0) & (data["AI"] == 1)].shape[0]
+    denom = data[(data["FHD"] == 1) & (data["HD1"] == 0) & (data["AI"] == 1)].shape[0]
+    denom += data[(data["FHD"] == 0) & (data["HD1"] == 0) & (data["AI"] == 1)].shape[0]
+    rair /= (denom + np.finfo(np.float64).eps)
+
+    rsr = data[(data["FHD"] == 1) & (data["HD1"] == 1) & (data["AI"] == 0)].shape[0]
+    denom = data[(data["FHD"] == 1) & (data["HD1"] == 1) & (data["AI"] == 0)].shape[0]
+    denom += data[(data["FHD"] == 0) & (data["HD1"] == 1) & (data["AI"] == 0)].shape[0]
+    rsr /= (denom + np.finfo(np.float64).eps)
     
     appropriate_reliance = num/data.shape[0]
     dominance_strength = (data[data["FHD"] != data["HD1"]].shape[0]/data.shape[0])
@@ -117,7 +129,16 @@ def compute_effects(data_in):
     escalator = (1/(1/(2*var_eq) + 1/(2*acc_all)))
     slingshot = (1/(1/(2*var_inc) + 1/(2*acc_high)))
     tarpit = mannwhitneyu(acc_pre, acc_post, alternative="less").pvalue
+
+    acc_h = np.mean(acc_pre)
+    acc_ai = np.mean(data.groupby("id")["FHD"].mean())
+    exp_ar = (1-acc_h)*acc_ai*acc_h + acc_h*acc_ai*acc_h*0.5 + acc_h*(1-acc_ai)*acc_h 
+    exp_ar += (1-acc_h)*(1-acc_ai)*acc_h + (1-acc_h)*(1-acc_ai)*(1-acc_h)*0.5
+    appr_inf = 1 - (1-appropriate_reliance)/(1-exp_ar)
+
+
     return {"appropriate reliance": appropriate_reliance,
+            "appropriate influence": appr_inf,
             "ai effect on decision": ai_effect_on_decision,
             "nnd": nnd,
             "leveler": leveler,
@@ -128,4 +149,6 @@ def compute_effects(data_in):
             "dominance direction": dominance_direction,
             "persuasion_index": average_persuasion_value,
             "persuasion values": persuasion_values,
-            "persuasion_std": std_dev_persuasion_values}
+            "persuasion_std": std_dev_persuasion_values,
+            "rair": rair,
+            "rsr": rsr}
