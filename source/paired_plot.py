@@ -63,13 +63,13 @@ def paired_plot(filename, type_ai=None, group_user=None, sub=None, sub_vals=[], 
                 staircase = diff[(diff > 0) & (acc_post < ai_level)].shape[0]/diff.shape[0]
                 repulsion = diff[(diff < 0) & (acc_pre < ai_level)].shape[0]/diff.shape[0]
                 outperformance = diff[(diff > 0) & (acc_post >= ai_level) & (acc_pre < ai_level)].shape[0]/diff.shape[0]
-                ballast = diff[(diff < 0) & (acc_pre >= ai_level)].shape[0]/diff.shape[0]
+                ballast = diff[(diff < 0) & (acc_pre >= ai_level) & (acc_post >= ai_level)].shape[0]/diff.shape[0]
                 spur = diff[(diff > 0) & (acc_pre >= ai_level)].shape[0]/diff.shape[0]
-                unchanged = diff[(diff == 0)].shape[0]/diff.shape[0]
                 empowered = diff[(diff > 0)].shape[0]/diff.shape[0]
                 undermined = diff[(diff < 0)].shape[0]/diff.shape[0]
-                unaffected = diff[(diff == 0)].shape[0]/diff.shape[0]            
-                annot = f'Lifted: {staircase:.2f},   Repulsed: {repulsion:.2f}, Unaffected: {unchanged:.2f},\nOutperformers: {outperformance:.2f}, Ballasted: {ballast:.2f}, Spurred: {spur:.2f}\nEmpowered: {empowered:.2f}, Unaffected: {unaffected:.2f}, Undermined: {undermined:.2f}'
+                unaffected = diff[(diff == 0)].shape[0]/diff.shape[0]    
+                overcomed = diff[(diff < 0) & (acc_pre >= ai_level) & (acc_post <= ai_level)].shape[0]/diff.shape[0]     
+                annot = f'Lifted: {staircase:.2f},   Repulsed: {repulsion:.2f}, Overcomed: {overcomed:.2f},\nOutperformers: {outperformance:.2f}, Ballasted: {ballast:.2f}, Spurred: {spur:.2f}\nEmpowered: {empowered:.2f}, Unaffected: {unaffected:.2f}, Undermined: {undermined:.2f}'
             else:
                 empowered = diff[(diff > 0)].shape[0]/diff.shape[0]
                 undermined = diff[(diff < 0)].shape[0]/diff.shape[0]
